@@ -44,6 +44,9 @@ Collection to complete the transfer.
 // The main NFT contract interface. Other NFT contracts will
 // import and implement this interface
 //
+
+import MetadataViews from "./MetadataViews.cdc"
+
 pub contract interface NonFungibleToken {
 
     // The total number of tokens of this type in existence
@@ -75,8 +78,26 @@ pub contract interface NonFungibleToken {
 
     // Requirement that all conforming NFT smart contracts have
     // to define a resource called NFT that conforms to INFT
-    pub resource NFT: INFT {
+    pub resource NFT: INFT, MetadataViews.Resolver {
         pub let id: UInt64
+        
+        /// Function that returns all the Metadata Views implemented by a Non Fungible Token
+        ///
+        /// @return An array of Types defining the implemented views. This value will be used by
+        ///         developers to know which parameter to pass to the resolveView() method.
+        ///
+        pub fun getViews(): [Type] {
+            return []
+        }
+
+        /// Function that resolves a metadata view for this token.
+        ///
+        /// @param view: The Type of the desired view.
+        /// @return A structure representing the requested view.
+        ///
+        pub fun resolveView(_ view: Type): AnyStruct? {
+            return nil
+        }
     }
 
     // Interface to mediate withdraws from the Collection
@@ -110,7 +131,7 @@ pub contract interface NonFungibleToken {
     // Requirement for the concrete resource type
     // to be declared in the implementing contract
     //
-    pub resource Collection: Provider, Receiver, CollectionPublic {
+    pub resource Collection: Provider, Receiver, CollectionPublic, MetadataViews.ResolverCollection {
 
         // Dictionary to hold the NFTs in the Collection
         pub var ownedNFTs: @{UInt64: NFT}
@@ -123,7 +144,9 @@ pub contract interface NonFungibleToken {
         pub fun deposit(token: @NFT)
 
         // getIDs returns an array of the IDs that are in the collection
-        pub fun getIDs(): [UInt64]
+        pub fun getIDs(): [UInt64] {
+            return []
+        }
 
         // Returns a borrowed reference to an NFT in the collection
         // so that the caller can read data and call methods from it
@@ -132,6 +155,12 @@ pub contract interface NonFungibleToken {
                 self.ownedNFTs[id] != nil: "NFT does not exist in the collection!"
             }
         }
+
+        pub fun borrowNFTSafe(id: UInt64) : &NFT? {
+            return &self.ownedNFTs[id] as &NFT?
+        }
+
+        pub fun borrowViewResolver(id: UInt64): &{MetadataViews.Resolver}
     }
 
     // createEmptyCollection creates an empty Collection
